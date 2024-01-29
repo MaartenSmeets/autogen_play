@@ -16,15 +16,14 @@ config_list = autogen.config_list_from_json(
 # create an AssistantAgent named "assistant"
 assistant = autogen.AssistantAgent(
     name="assistant",
-    is_termination_msg=lambda x: True if "TERMINATE" in x.get(
-        "content") else False,
     llm_config={
-        "timeout": 900,  # timeout for each request to OpenAI API
+        "timeout": 3600,  # timeout for each request to OpenAI API
         "max_retries": 10,  # maximum number of retries for each request to OpenAI API
         "config_list": config_list,  # a list of OpenAI API configurations
         "max_tokens": 4096,  # maximum number of tokens for each response
         "temperature": 0  # temperature for sampling
     }
+    #is_termination_msg=lambda x: True if "TERMINATE" in x.get("content") else False
 )
 
 # create a UserProxyAgent instance named "user_proxy"
@@ -32,8 +31,7 @@ user_proxy = autogen.UserProxyAgent(
     name="user_proxy",
     human_input_mode="NEVER",
     max_consecutive_auto_reply=10,
-    is_termination_msg=lambda x: True if "TERMINATE" in x.get(
-        "content") else False,
+    is_termination_msg=lambda x: True if "TERMINATE" in x.get("content") else False,
     code_execution_config={
         "work_dir": "coding",
         "use_docker": True,
@@ -45,12 +43,79 @@ user_proxy = autogen.UserProxyAgent(
 user_proxy.initiate_chat(
     assistant,
     message = """
-    As an expert in game system calculations and statistics, I need assistance optimizing the damage output of my Dungeons & Dragons 5th Edition (D&D 5e) character. The character is an 11th-level Eldritch Knight with a proficiency bonus of +4. Equipped with a hand crossbow that has a +1 bonus to attack, the character possesses the Crossbow Expert and Sharpshooter feats, along with the Archery combat style. Additionally, the character boasts a Dexterity score of 20.
+    I need assistance optimizing the damage output of my Dungeons & Dragons 5th Edition (D&D 5e) character. The character is an 11th-level Eldritch Knight with a proficiency bonus of +4. Equipped with a hand crossbow that has a +1 bonus to attack, the character possesses the Crossbow Expert and Sharpshooter feats, along with the Archery combat style. Additionally, the character boasts a Dexterity score of 20.
 
-    To maximize damage per round, I would like to create a table for enemy armor classes ranging from 18 to 23. The objective is to determine whether using the Sharpshooter feat's ability to subtract 5 from the attack bonus and add 10 to damage would optimize the damage output. The calculations involve factoring in critical damage and critical misses in the average damage calculation.
+    To maximize damage per round, I would like to know for which enemy AC between 18 and 23 it is more efficient to use the Sharpshooter feat's ability to subtract 5 from the attack bonus and add 10 to damage. The calculations involve factoring in critical damage and critical misses in the average damage calculation.
 
-    To achieve this, I'll calculate the hit chance and then multiply it by the average damage to determine the average damage per attack. The resulting table will include hit chance values both with and without utilizing the -5 attack/+10 damage ability. Additionally, it will provide average damage per attack on a hit, both with and without the ability. Finally, the table will showcase the overall average damage per attack by multiplying the average damage on hit with the hit chance for both scenarios, with and without using the -5 attack/+10 damage ability.
+    To achieve this, calculate the hit chance based on attack and enemy armor class and then multiply it by the average damage to determine the average damage per attack. Do this both with and without utilizing the -5 attack/+10 damage ability and compare the results to determine whether using the ability maximizes damage per attack.
     
-    Use the dndscraper.py module search_dnd5e_subpages method which has as parameter a query to lookup required information and the number of results to return. Example call: my_results = search_dnd5e_subpages("Eldritch Knight", 1). Evaluate the results of the method call before you use it in answering questions. Include Dungeons Masters Guide, Players Handbook, Xanathar's Guide to Everything (XGE), Tasha's Cauldron of Everything (TCE) and exclude any homebrew.
+    You can use the following code to help you complete your task and fetch additional specific information relevant for answering my request such as information about the Eldritch Knight. Before using information validate its source. Include Dungeons Masters Guide, Players Handbook, Xanathar's Guide to Everything (XGE), Tasha's Cauldron of Everything (TCE) and exclude any homebrew.
+
+import os
+import json
+import hashlib
+import requests
+from bs4 import BeautifulSoup
+from googlesearch import search
+
+def sanitize_html(html):
+    soup = BeautifulSoup(html, 'html.parser')
+
+    # Remove script, style, object, embed, applet, audio, video, iframe, img tags
+    for tag in soup(["script", "style", "object", "embed", "applet", "audio", "video", "iframe", "img"]):
+        tag.decompose()
+
+    # Get text content
+    text_content = soup.get_text()
+
+    return text_content.strip()
+
+def search_dnd5e_subpages(query, num_results=5):
+    key = hashlib.md5(("search_dnd5e_subpages(" + str(num_results) + ")" + query).encode("utf-8"))
+    cache_dir = ".cache"
+    if not os.path.isdir(cache_dir):
+        os.mkdir(cache_dir)
+
+    fname = os.path.join(cache_dir, key.hexdigest() + ".cache")
+
+    # Cache hit
+    if os.path.isfile(fname):
+        fh = open(fname, "r", encoding="utf-8")
+        data = json.loads(fh.read())
+        fh.close()
+        return data
+
+    results = []
+
+    # Google search for subpages of http://dnd5e.wikidot.com
+    site_search_query = f"{query} site:dnd5e.wikidot.com"
+    for url in search(site_search_query, num_results=num_results):
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+
+            sanitized_content = sanitize_html(response.text)
+            title = BeautifulSoup(response.text, 'html.parser').title.text if BeautifulSoup(response.text, 'html.parser').title else 'No Title'
+
+            results.append({
+                'title': title.strip(),
+                'content': sanitized_content,
+            })
+
+        except requests.exceptions.RequestException as e:
+            print(f"Error accessing {url}: {e}")
+
+    # Save to cache
+    fh = open(fname, "w", encoding="utf-8")
+    fh.write(json.dumps(results))
+    fh.close()
+    for file in os.listdir(cache_dir):
+        file_path = os.path.join(cache_dir, file)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+        except OSError as e:
+            print(f"Error deleting {file_path}: {e}")
+    return results
     """
 )

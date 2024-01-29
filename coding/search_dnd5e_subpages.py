@@ -1,6 +1,4 @@
-"""
-This module provides functions for scraping and searching Dungeons and Dragons 5th edition content from the dnd5e.wikidot.com website.
-"""
+# filename: search_dnd5e_subpages.py
 import os
 import json
 import hashlib
@@ -8,17 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from googlesearch import search
 
-
 def sanitize_html(html):
-    """
-    Remove streams, images, video, and other non-human-readable content from HTML.
-
-    Args:
-        html (str): The HTML content.
-
-    Returns:
-        sanitized_text (str): The sanitized text content.
-    """
     soup = BeautifulSoup(html, 'html.parser')
 
     # Remove script, style, object, embed, applet, audio, video, iframe, img tags
@@ -30,24 +18,7 @@ def sanitize_html(html):
 
     return text_content.strip()
 
-
 def search_dnd5e_subpages(query, num_results=5):
-    """
-    Searches subpages of http://dnd5e.wikidot.com for the given query and returns a JSON list of objects
-    with the title of the page as the key and sanitized text content as the value.
-
-    Args:
-        query (str): The search query.
-        num_results (int, optional): The number of Google search results to access. Defaults to 5.
-
-    Returns:
-        results (list): A list of dictionaries with 'title' and 'content' keys.
-
-    Example:
-        >>> results = search_dnd5e_subpages("Dungeons and Dragons 5th edition rules")
-        >>> print(results)
-    """
-
     key = hashlib.md5(("search_dnd5e_subpages(" + str(num_results) + ")" + query).encode("utf-8"))
     cache_dir = ".cache"
     if not os.path.isdir(cache_dir):
@@ -95,8 +66,5 @@ def search_dnd5e_subpages(query, num_results=5):
             print(f"Error deleting {file_path}: {e}")
     return results
 
-# Example usage:
-#my_query = "Eldritch Knight"
-#my_num_results = 5
-#my_results = search_dnd5e_subpages(my_query, my_num_results)
-#print(my_results)
+# Search for relevant information
+search_results = search_dnd5e_subpages("D&D 5e rules and calculations")
