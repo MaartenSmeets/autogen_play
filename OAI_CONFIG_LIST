@@ -1,0 +1,7 @@
+[
+    {
+        "model": "local",
+        "api_key": "Welcome01",
+        "base_url": "http://localhost:5000/v1"
+    }
+]
