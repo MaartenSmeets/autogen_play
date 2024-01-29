@@ -22,15 +22,15 @@ assistant = autogen.AssistantAgent(
         "config_list": config_list,  # a list of OpenAI API configurations
         "max_tokens": 4096,  # maximum number of tokens for each response
         "temperature": 0  # temperature for sampling
-    }
-    #is_termination_msg=lambda x: True if "TERMINATE" in x.get("content") else False
+    },
+    is_termination_msg=lambda x: True if "TERMINATE" in x.get("content") else False
 )
 
 # create a UserProxyAgent instance named "user_proxy"
 user_proxy = autogen.UserProxyAgent(
     name="user_proxy",
     human_input_mode="NEVER",
-    max_consecutive_auto_reply=10,
+    max_consecutive_auto_reply=20,
     is_termination_msg=lambda x: True if "TERMINATE" in x.get("content") else False,
     code_execution_config={
         "work_dir": "coding",
@@ -43,13 +43,13 @@ user_proxy = autogen.UserProxyAgent(
 user_proxy.initiate_chat(
     assistant,
     message = """
-    I need assistance optimizing the damage output of my Dungeons & Dragons 5th Edition (D&D 5e) character. The character is an 11th-level Eldritch Knight with a proficiency bonus of +4. Equipped with a hand crossbow that has a +1 bonus to attack, the character possesses the Crossbow Expert and Sharpshooter feats, along with the Archery combat style. Additionally, the character boasts a Dexterity score of 20.
+    I need assistance optimizing the damage output of my Dungeons & Dragons 5th Edition (D&D 5e) character. The character is an 11th-level Eldritch Knight. Equipped with a hand crossbow that has a +1 bonus to attack and regular hand crossbow damage, the character possesses the Crossbow Expert and Sharpshooter feats, along with the Archery combat style. Additionally, the character boasts a Dexterity score of 20.
 
     To maximize damage per round, I would like to know for which enemy AC between 18 and 23 it is more efficient to use the Sharpshooter feat's ability to subtract 5 from the attack bonus and add 10 to damage. The calculations involve factoring in critical damage and critical misses in the average damage calculation.
 
     To achieve this, calculate the hit chance based on attack and enemy armor class and then multiply it by the average damage to determine the average damage per attack. Do this both with and without utilizing the -5 attack/+10 damage ability and compare the results to determine whether using the ability maximizes damage per attack.
     
-    You can use the following code to help you complete your task and fetch additional specific information relevant for answering my request such as information about the Eldritch Knight. Before using information validate its source. Include Dungeons Masters Guide, Players Handbook, Xanathar's Guide to Everything (XGE), Tasha's Cauldron of Everything (TCE) and exclude any homebrew.
+    You can use the following code to help you complete your task and fetch additional specific information relevant for answering my request such as information about the Eldritch Knight or information about a hand crossbow. Before using information validate its source. Include Dungeons Masters Guide, Players Handbook, Xanathar's Guide to Everything (XGE), Tasha's Cauldron of Everything (TCE) and exclude any homebrew.
 
 import os
 import json
@@ -70,7 +70,7 @@ def sanitize_html(html):
 
     return text_content.strip()
 
-def search_dnd5e_subpages(query, num_results=5):
+def search_dnd5e_subpages(query, num_results=1):
     key = hashlib.md5(("search_dnd5e_subpages(" + str(num_results) + ")" + query).encode("utf-8"))
     cache_dir = ".cache"
     if not os.path.isdir(cache_dir):
