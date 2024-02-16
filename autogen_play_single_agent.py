@@ -57,10 +57,13 @@ user_proxy = autogen.UserProxyAgent(
 # the assistant receives a message from the user_proxy, which contains the task description
 user_proxy.initiate_chat(
     assistant,
-    message="""Your task is to analyse the website https://5thsrd.org/rules/leveling_up/, create a website scraper to extract xp per level for dnd 5th edition from the site
-and visualize it in a line chart exported as png. To do this, first analyze the website to determine the exact elements to scrape by printing (but not as code block and not 
-enclosed by three single quotes) only the table from the html of the website to the console for analyses. Then, write a python script to scrape the data from the live website 
-based on the output which was printed to the console and then visualize it using matplotlib. You will need to write a script to confirm the png file has been created. 
+    message="""Your task is to create a png with a line chart of xp per level in dnd 5th edition. 
+To do this, analyse the website https://5thsrd.org/rules/leveling_up/ by fetching it and printing 
+the table in the html to the console. Do not print the website table inside a code block. Analyse 
+the output and depermine which parts of the website need to be parsed inside a scraper, create the 
+graph from the parsed data using matplotlib.
+
+You will need to write a script to confirm the png file has been created. 
 The script needs to print confirmation to the console when the png file exists and print to the console when it does not exist. You are not done before the creation of the png 
 file is confirmed. If the png file is expected and it is not there, check previous code and execution results to find and fix the cause and try again. Once you are sure you are done, 
 first print proof and then print TERMINATE to the console.
