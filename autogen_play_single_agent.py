@@ -60,7 +60,7 @@ user_proxy.initiate_chat(
     message="""Your task is to create a png with a line chart of xp per level in dnd 5th edition. 
 To do this, analyse the website https://5thsrd.org/rules/leveling_up/ by fetching it and printing 
 the table in the html to the console. Do not print the website table inside a code block. Analyse 
-the output and depermine which parts of the website need to be parsed inside a scraper, create the 
+the output and determine which parts of the website need to be parsed inside a scraper, create the 
 graph from the parsed data using matplotlib.
 
 You will need to write a script to confirm the png file has been created. 
