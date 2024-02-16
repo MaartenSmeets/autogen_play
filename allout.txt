@@ -1,0 +1,12 @@
+user_proxy (to assistant):
+
+Your task is to analyse the website https://5thsrd.org/rules/leveling_up/, create a website scraper to extract xp per level for dnd 5th edition from the site
+and visualize it in a line chart exported as png. To do this, first analyze the website to determine the exact elements to scrape by printing (but not as code block and not 
+enclosed by three single quotes) only the table from the html of the website to the console for analyses. Then, write a python script to scrape the data from the live website 
+based on the output which was printed to the console and then visualize it using matplotlib. You will need to write a script to confirm the png file has been created. 
+The script needs to print confirmation to the console when the png file exists and print to the console when it does not exist. You are not done before the creation of the png 
+file is confirmed. If the png file is expected and it is not there, check previous code and execution results to find and fix the cause and try again. Once you are sure you are done, 
+first print proof and then print TERMINATE to the console.
+
+
+--------------------------------------------------------------------------------

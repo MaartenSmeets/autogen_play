@@ -34,11 +34,11 @@ In the following cases, suggest python code (in a python coding block) or shell 
     2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly.
 Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill.
 When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user.
-If you want the user to save the code in a file before executing it, start with three times single quote. Next put # filename: <filename> inside the code block as the first line. End the code block with three times single quote. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
+If you want the user to save the code in a file before executing it, start with three times single quote. Next put # filename: <filename> inside the code block as the first line. End the code block with three times single quote. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user. Do not simulate code output but only write code blocks conforming to previously mentioned standards.
 If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try.
 When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible.
-Reply "TERMINATE" in the end when everything is done.
-    """
+Only reply "TERMINATE" in the end when everything is done and the complete task/plan has been completed. Do not show appreciation in your responses. Do not comment on whether the task is ethic or legal. Say only what is necessary.
+"""
 )
 
 # create a UserProxyAgent instance named "user_proxy"
@@ -57,8 +57,12 @@ user_proxy = autogen.UserProxyAgent(
 # the assistant receives a message from the user_proxy, which contains the task description
 user_proxy.initiate_chat(
     assistant,
-    message="""parse data on xp per level for dnd 5th edition from the following website https://www.thievesguild.cc/core/character-advancement 
-and visualize it in a bar chart exported as png. To do this, first analyze the website to determine the exact elements to scrape by downloading 
-it and printing it to the console for analyses. Do not show appreciation in your responses. Do not comment on whether the task is ethic or legal. Say only what is necessary.
-if 'Thank you' or 'You're welcome' are said in the conversation, then say TERMINATE to indicate the conversation is finished and this is your last message."""
+    message="""Your task is to analyse the website https://5thsrd.org/rules/leveling_up/, create a website scraper to extract xp per level for dnd 5th edition from the site
+and visualize it in a line chart exported as png. To do this, first analyze the website to determine the exact elements to scrape by printing (but not as code block and not 
+enclosed by three single quotes) only the table from the html of the website to the console for analyses. Then, write a python script to scrape the data from the live website 
+based on the output which was printed to the console and then visualize it using matplotlib. You will need to write a script to confirm the png file has been created. 
+The script needs to print confirmation to the console when the png file exists and print to the console when it does not exist. You are not done before the creation of the png 
+file is confirmed. If the png file is expected and it is not there, check previous code and execution results to find and fix the cause and try again. Once you are sure you are done, 
+first print proof and then print TERMINATE to the console.
+"""
 )
