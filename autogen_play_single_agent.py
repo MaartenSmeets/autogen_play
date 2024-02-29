@@ -45,7 +45,7 @@ Only reply "TERMINATE" in the end when everything is done and the complete task/
 user_proxy = autogen.UserProxyAgent(
     name="user_proxy",
     human_input_mode="NEVER",
-    max_consecutive_auto_reply=20,
+    max_consecutive_auto_reply=40,
     is_termination_msg=lambda x: x.get(
         "content", "").rstrip().endswith("TERMINATE"),
     code_execution_config={
@@ -57,15 +57,11 @@ user_proxy = autogen.UserProxyAgent(
 # the assistant receives a message from the user_proxy, which contains the task description
 user_proxy.initiate_chat(
     assistant,
-    message="""Your task is to create a png with a line chart of xp per level in dnd 5th edition. 
-To do this, analyse the website https://5thsrd.org/rules/leveling_up/ by fetching it and printing 
-the table in the html to the console. Do not print the website table inside a code block. Analyse 
-the output and determine which parts of the website need to be parsed inside a scraper, create the 
-graph from the parsed data using matplotlib.
-
-You will need to write a script to confirm the png file has been created. 
-The script needs to print confirmation to the console when the png file exists and print to the console when it does not exist. You are not done before the creation of the png 
-file is confirmed. If the png file is expected and it is not there, check previous code and execution results to find and fix the cause and try again. Once you are sure you are done, 
-first print proof and then print TERMINATE to the console.
+    message="""
+- Begin by fetching the website https://5thsrd.org/rules/leveling_up/ and saving the HTML locally to a file. Confirm the HTML file has been created and contains data and only then continu with the next step. If the file is missing or if it is empty, investigate previous code and execution results to identify and rectify any issues.
+- Analyse the first table in the locally saved HTML file (without assuming a table class) by printing it to the console. Your goal of analysing the table is to create a parser which extracts the data that contains the XP requirements for each character level. Take into account the XP in the table uses a comma to separate thousands.
+- Use the previously determined data and save it to a CSV file. Confirm the CSV file has been created and contains data and only then continu with the next step. If the file is missing or if it is empty, investigate previous code and execution results to identify and rectify any issues.
+- Utilize the contents of the CSV file to create a line chart using the matplotlib library. The x-axis should represent character levels, while the y-axis should indicate the required XP for each level. Export the graph as PNG. Write your code to not require user interaction. Confirm the PNG file has been created and only then continu with the next step. If the file is missing, investigate previous code and execution results to identify and rectify any issues.
+- Consider the task complete only when the PNG file creation is confirmed. If this is the case, reply "TERMINATE” to signal the end of the task.
 """
 )
