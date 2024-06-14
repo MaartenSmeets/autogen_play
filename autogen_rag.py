@@ -46,7 +46,7 @@ ragproxyagent = RetrieveUserProxyAgent(
     retrieve_config={
         "task": "qa",
         "docs_path": ["./crawled_pages"],
-        "embedding_function": embedding_functions.DefaultEmbeddingFunction(),
+        "embedding_function": ef,
         "collection_name": "rag_collection",
         "vector_db": "chroma",
         "custom_text_split_function": text_splitter.split_text,
