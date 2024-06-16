@@ -1,26 +1,28 @@
 import os
 import logging
+import re
 from langchain_community.document_loaders import DirectoryLoader
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.chat_models import ChatOllama
-from langchain_core.messages import HumanMessage, BaseMessage
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 import chromadb
 
 # Disable ChromaDB telemetry
 os.environ["CHROMA_TELEMETRY"] = "FALSE"
 
 # Configuration parameters
-STORAGE_PATH = "./vector_store"  # Path to store the vector store
+STORAGE_PATH = "./vector_store"
 OLLAMA_API_KEY = 'Welcome01'
 EMBEDDING_MODEL = "nomic-embed-text:latest"
-LLM_MODEL = "mixtral:8x22b"  # Specify your LLM model here
+LLM_MODEL = "mixtral:8x22b"
 DOCUMENT_DIRECTORY = './crawled_pages'
 QUESTION = "An Eldritch Knight (PHB fighter subclass) can choose level 3 spells when level 13. Which spell should I choose as an Eldritch Knight elf focused on ranged combat?"
 
 # Logging configuration parameters
-LOGGING_LEVEL = logging.INFO  # Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-TEXT_SNIPPET_LENGTH = 50  # Number of characters to show in log snippets
-LOG_FILE = 'script_log.log'  # Log file path
+LOGGING_LEVEL = logging.INFO
+TEXT_SNIPPET_LENGTH = 50
+LOG_FILE = 'script_log.log'
 
 # Configure logging
 logging.basicConfig(level=LOGGING_LEVEL, format='%(name)s - %(levelname)s - %(message)s', handlers=[
@@ -45,60 +47,48 @@ def get_embedding(texts, is_query=False):
     logger.info(f"Embedding documents: {snippet}...")
     return ollama_emb.embed_documents(texts)
 
-def generate_answer(context, question, llm_model):
-    context_snippet = str(len(context)) if isinstance(context, list) else context[:TEXT_SNIPPET_LENGTH]
-    logger.info(f"Generating answer with context: {context_snippet}... and question: {question}")
-    ollama_llm = ChatOllama(model=llm_model)
-    messages = [[HumanMessage(content=f"Context: {context}\n\nQuestion: {question}\n\nAnswer:")]]
+def clean_search_terms(search_terms):
+    # Convert to lowercase
+    search_terms = search_terms.lower()
+    # Remove special characters and digits
+    search_terms = re.sub(r'[^a-z\s]', '', search_terms)
+    # Remove extra whitespace
+    search_terms = re.sub(r'\s+', ' ', search_terms).strip()
+    return search_terms
 
-    # Log the message content and type
-    logger.debug(f"Messages to be sent: {messages}")
-    logger.debug(f"Message type: {type(messages[0][0])}")
-
-    try:
-        response = ollama_llm.generate(messages, max_tokens=150, temperature=0.1)
-        logger.debug(f"Response from Ollama: {response}")
-        if isinstance(response.generations, list) and response.generations:
-            answer_text = " ".join([gen.text for gen in response.generations])
-        else:
-            answer_text = response.generations[0].text
-        
-        logger.info(f"Generated answer text: {answer_text[:TEXT_SNIPPET_LENGTH]}...")
-        return answer_text
-    except Exception as e:
-        logger.error(f"Error generating answer: {e}", exc_info=True)
-        raise
-
-def determine_search_terms(question, llm_model):
-    logger.info(f"Determining search terms for question: {question}")
-    ollama_llm = ChatOllama(model=llm_model)
-    messages = [[HumanMessage(content=f"Determine the main keywords or search terms for the following question to use for a semantic search: {question}")]]
+def generate_response(context, question, llm_model, task_type="answer"):
+    if task_type == "search_terms":
+        prompt_template = "Determine the main keywords or search terms for the following question: {question}"
+        input_data = {"question": question}
+    else:
+        prompt_template = "Context: {context}\n\nQuestion: {question}\n\nAnswer:"
+        input_data = {"context": context, "question": question}
     
-    # Log the message content and type
-    logger.debug(f"Messages to be sent: {messages}")
-    logger.debug(f"Message type: {type(messages[0][0])}")
+    logger.info(f"Generating {task_type} with context: '{context[:TEXT_SNIPPET_LENGTH]}' and question: '{question[:TEXT_SNIPPET_LENGTH]}'")
+
+    ollama_llm = ChatOllama(model=llm_model)
+    prompt = ChatPromptTemplate.from_template(prompt_template)
+    chain = prompt | ollama_llm | StrOutputParser()
+
+    logger.debug(f"Input data for prompt: {input_data}")
 
     try:
-        response = ollama_llm.generate(messages, max_tokens=50, temperature=0.1)
+        response = chain.invoke(input_data)
         logger.debug(f"Response from Ollama: {response}")
-        if isinstance(response.generations, list) and response.generations:
-            search_terms = " ".join([gen.text for gen in response.generations])
-        else:
-            search_terms = response.generations[0].text
-        
-        logger.info(f"Determined search terms: {search_terms[:TEXT_SNIPPET_LENGTH]}")
-        return search_terms
+
+        result_text = response
+        logger.info(f"Generated {task_type} text: {result_text[:TEXT_SNIPPET_LENGTH]}...")
+        return result_text
     except Exception as e:
-        logger.error(f"Error determining search terms: {e}", exc_info=True)
+        logger.error(f"Error generating {task_type}: {e}", exc_info=True)
         raise
 
 def index_documents(directory):
     logger.info(f"Indexing documents in directory: {directory}")
-    loader = DirectoryLoader(directory, glob="**/*.md")  # Assuming documents are markdown files
+    loader = DirectoryLoader(directory, glob="**/*.md")
     documents = loader.load()
     logger.info(f"Loaded {len(documents)} documents")
-    
-    # Initialize Chroma vector store with persistent client
+
     client = chromadb.PersistentClient(path=STORAGE_PATH)
     collection = client.get_or_create_collection(name="documents")
 
@@ -110,7 +100,7 @@ def index_documents(directory):
 
         logger.info(f"Adding documents to collection with {len(texts)} texts")
         collection.add(documents=texts, metadatas=metadatas, embeddings=embeddings, ids=ids)
-    
+
     return collection
 
 def query_vector_store(collection, query, top_k=5):
@@ -122,22 +112,20 @@ def query_vector_store(collection, query, top_k=5):
 
 def main():
     collection = index_documents(DOCUMENT_DIRECTORY)
-    
-    # Determine the search terms for the question
-    search_terms = determine_search_terms(QUESTION, LLM_MODEL)
-    logger.info(f"Determined search terms: {search_terms[:TEXT_SNIPPET_LENGTH]}")
-    
-    # Use the search terms to query the vector store
-    results = query_vector_store(collection, search_terms, top_k=1)
 
-    # Debugging: Print results to see the format
+    search_terms = generate_response("", QUESTION, LLM_MODEL, task_type="search_terms")
+    logger.info(f"Determined search terms: {search_terms[:TEXT_SNIPPET_LENGTH]}")
+
+    cleaned_search_terms = clean_search_terms(search_terms)
+    logger.info(f"Cleaned search terms: {cleaned_search_terms}")
+
+    results = query_vector_store(collection, cleaned_search_terms, top_k=1)
     logger.info(f"Query results: {results}")
 
     if results and 'documents' in results:
-        # Flatten the list of lists
         context = " ".join([doc[:TEXT_SNIPPET_LENGTH] for sublist in results['documents'] for doc in sublist])
         logger.info(f"Generated context: {context[:TEXT_SNIPPET_LENGTH]}...")
-        answer = generate_answer(context, QUESTION, LLM_MODEL)
+        answer = generate_response(context, QUESTION, LLM_MODEL, task_type="answer")
         logger.info(f"Question: {QUESTION}\nAnswer: {answer}")
     else:
         logger.info("No relevant documents found.")
