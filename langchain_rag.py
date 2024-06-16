@@ -14,7 +14,7 @@ os.environ["CHROMA_TELEMETRY"] = "FALSE"
 # Configuration parameters
 STORAGE_PATH = "./vector_store"
 OLLAMA_API_KEY = 'Welcome01'
-EMBEDDING_MODEL = "nomic-embed-text:latest"
+EMBEDDING_MODEL = "avr/sfr-embedding-mistral:latest"
 LLM_MODEL = "mixtral:8x22b"
 DOCUMENT_DIRECTORY = './crawled_pages'
 QUESTION = "An Eldritch Knight (PHB fighter subclass) can choose level 3 spells when level 13. Which spell should I choose as an Eldritch Knight elf focused on ranged combat?"
