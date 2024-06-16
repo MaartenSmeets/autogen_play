@@ -54,12 +54,18 @@ def clean_search_terms(search_terms):
     search_terms = re.sub(r'[^a-z\s]', '', search_terms)
     # Remove extra whitespace
     search_terms = re.sub(r'\s+', ' ', search_terms).strip()
+    # Further refine search terms
+    search_terms = re.sub(r'\bkeywords\b|\bsearch\b|\bterms\b', '', search_terms).strip()
     return search_terms
 
 def generate_response(context, question, llm_model, task_type="answer"):
+    context_snippet = str(len(context)) if isinstance(context, list) else context[:TEXT_SNIPPET_LENGTH]
     if task_type == "search_terms":
         prompt_template = "Determine the main keywords or search terms for the following question: {question}"
         input_data = {"question": question}
+    elif task_type == "validate_document":
+        prompt_template = "Context: {context}\n\nQuestion: {question}\n\nIs this document relevant to the question?"
+        input_data = {"context": context, "question": question}
     else:
         prompt_template = "Context: {context}\n\nQuestion: {question}\n\nAnswer:"
         input_data = {"context": context, "question": question}
@@ -110,6 +116,10 @@ def query_vector_store(collection, query, top_k=5):
     logger.info(f"Query results: {results}")
     return results
 
+def validate_document_relevance(document, question, llm_model):
+    response = generate_response(document, question, llm_model, task_type="validate_document")
+    return "yes" in response.lower()
+
 def main():
     collection = index_documents(DOCUMENT_DIRECTORY)
 
@@ -122,8 +132,14 @@ def main():
     results = query_vector_store(collection, cleaned_search_terms, top_k=1)
     logger.info(f"Query results: {results}")
 
+    relevant_documents = []
     if results and 'documents' in results:
-        context = " ".join([doc[:TEXT_SNIPPET_LENGTH] for sublist in results['documents'] for doc in sublist])
+        for doc in results['documents']:
+            if validate_document_relevance(doc[0], QUESTION, LLM_MODEL):
+                relevant_documents.append(doc[0])
+
+    if relevant_documents:
+        context = " ".join([doc[:TEXT_SNIPPET_LENGTH] for doc in relevant_documents])
         logger.info(f"Generated context: {context[:TEXT_SNIPPET_LENGTH]}...")
         answer = generate_response(context, QUESTION, LLM_MODEL, task_type="answer")
         logger.info(f"Question: {QUESTION}\nAnswer: {answer}")
