@@ -9,14 +9,8 @@ import chromadb
 from bs4 import BeautifulSoup
 import httpx
 
-# Disable ChromaDB telemetry
-os.environ["CHROMA_TELEMETRY"] = "False"
-
 # Base URL for the local OpenAI-compliant API and Ollama
 BASE_URL = "http://localhost:11434"
-
-# Set the base URL to your local OpenAI-compliant API
-openai.api_base = BASE_URL
 
 # Configuration parameters
 STORAGE_PATH = "./vector_store"
@@ -45,18 +39,6 @@ logger = logging.getLogger(__name__)
 logging.getLogger("llama_index.readers").setLevel(logging.WARNING)
 logging.getLogger("llama_index.node_parser").setLevel(logging.WARNING)
 
-def log_request(request: httpx.Request):
-    logger.info(f"Request: {request.method} {request.url}")
-    return request
-
-def log_response(response: httpx.Response):
-    logger.info(f"Response status: {response.status_code} for {response.request.method} {response.request.url}")
-    return response
-
-client = httpx.Client(event_hooks={"request": [log_request], "response": [log_response]})
-
-openai.http_client = client
-
 # Initialize OllamaEmbedding with the local URL and specified model
 ollama_emb = OllamaEmbedding(model_name=EMBEDDING_MODEL, base_url=BASE_URL)
 
@@ -78,14 +60,11 @@ def generate_response(context, question, llm_model, task_type="answer"):
     else:
         prompt_template = "Context: {context}\n\nQuestion: {question}\n\nAnswer:"
 
-    input_data = {"context": context, "question": question}
-
     logger.info(f"Generating {task_type} with context: '{context[:TEXT_SNIPPET_LENGTH]}' and question: '{question[:TEXT_SNIPPET_LENGTH]}'")
 
     prompt = ChatPromptTemplate.from_template(prompt_template)
-
     try:
-        response = openai.Completion.create(
+        response = openai.completions.Completion.create(
             engine=llm_model,
             prompt=prompt.format(context=context, question=question),
             max_tokens=TOKEN_LENGTH,
