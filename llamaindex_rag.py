@@ -1,21 +1,20 @@
-import os
 import logging
 import openai
-from llama_index.core import SimpleDirectoryReader
+from llama_index.core.readers import SimpleDirectoryReader
 from llama_index.core.node_parser import SemanticSplitterNodeParser
 from llama_index.embeddings.ollama import OllamaEmbedding
-from llama_index.core import ChatPromptTemplate
+from llama_index.core.prompts import ChatPromptTemplate
 import chromadb
 from bs4 import BeautifulSoup
-import httpx
+import math
 
 # Base URL for the local OpenAI-compliant API and Ollama
 BASE_URL = "http://localhost:11434"
 
 # Configuration parameters
 STORAGE_PATH = "./vector_store"
-EMBEDDING_MODEL = "avr/sfr-embedding-mistral:latest"  # Specify your embedding model
-LLM_MODEL = "mixtral:8x22b-instruct-v0.1-q3_K_S"
+EMBEDDING_MODEL = "nomic-embed-text:latest"  # Specify your embedding model
+LLM_MODEL = "mixtral:8x22b-instruct-v0.1-q3_K_S"  # Updated model
 DOCUMENT_DIRECTORY = './crawled_pages'
 QUESTION = "An Eldritch Knight (PHB fighter subclass) can choose level 3 spells when level 13. Which spell should I choose as an Eldritch Knight elf focused on ranged combat?"
 UPDATE_VECTOR_STORE = True  # New parameter to make updating the vector store optional
@@ -29,7 +28,7 @@ LOG_FILE = 'script_log.log'
 TOKEN_LENGTH = 4096
 
 # Configure logging
-logging.basicConfig(level=LOGGING_LEVEL, format='%(name)s - %(levelname)s - %(message)s', handlers=[
+logging.basicConfig(level=LOGGING_LEVEL, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S', handlers=[
     logging.FileHandler(LOG_FILE),
     logging.StreamHandler()
 ])
@@ -46,9 +45,10 @@ def get_embedding(texts, is_query=False):
     snippet = str(len(texts)) if isinstance(texts, list) else texts[:TEXT_SNIPPET_LENGTH]
     if is_query:
         logger.info(f"Embedding query texts: {snippet}...")
-        return ollama_emb.embed_query(texts)
+        return ollama_emb.get_query_embedding(texts)
+    
     logger.info(f"Embedding documents: {snippet}...")
-    return ollama_emb.embed_documents(texts)
+    return ollama_emb.get_text_embedding_batch(texts, show_progress=True)
 
 def generate_response(context, question, llm_model, task_type="answer"):
     prompt_template = ""
@@ -62,12 +62,13 @@ def generate_response(context, question, llm_model, task_type="answer"):
 
     logger.info(f"Generating {task_type} with context: '{context[:TEXT_SNIPPET_LENGTH]}' and question: '{question[:TEXT_SNIPPET_LENGTH]}'")
 
-    prompt = ChatPromptTemplate.from_template(prompt_template)
+    prompt = prompt_template.format(context=context, question=question)
     try:
-        response = openai.completions.Completion.create(
-            engine=llm_model,
-            prompt=prompt.format(context=context, question=question),
+        response = openai.completions.create(
+            model=llm_model,
+            prompt=prompt,
             max_tokens=TOKEN_LENGTH,
+            temperature=0.1,
             api_base=BASE_URL  # Ensure the local API base URL is used
         )
         logger.debug(f"Response from OpenAI: {response}")
@@ -95,8 +96,26 @@ def index_documents(directory):
 
         # Semantic Chunking
         embed_model = ollama_emb
+        logger.info("Start splitting documents into semantic chunks")
         splitter = SemanticSplitterNodeParser(buffer_size=1, breakpoint_percentile_threshold=95, embed_model=embed_model)
-        nodes = splitter.get_nodes_from_documents(documents)
+        nodes = []
+
+        total_documents = len(documents)
+        progress_interval = max(1, total_documents // 20)  # Calculate the interval for 5% progress
+        last_logged_progress = 0
+
+        # Process each document and update progress
+        for i, document in enumerate(documents):
+            nodes.extend(splitter.get_nodes_from_documents([document]))
+
+            # Log progress every 5%
+            current_progress = (i + 1) / total_documents * 100
+            if current_progress - last_logged_progress >= 5:
+                logger.info(f"Progress: {current_progress:.2f}%")
+                last_logged_progress = current_progress
+
+        total_nodes = len(nodes)
+        logger.info(f"Number of chunks determined for vector store: {total_nodes}")
 
         client = chromadb.PersistentClient(path=STORAGE_PATH)
         collection = client.get_or_create_collection(name="documents")
@@ -104,8 +123,8 @@ def index_documents(directory):
         if collection.count() == 0:
             texts = [node.get_content() for node in nodes]
             embeddings = get_embedding(texts)
-            metadatas = [{"source": node.metadata.get('source', '')[:TEXT_SNIPPET_LENGTH]} for node in nodes]
-            ids = [node.metadata.get('source', '')[:TEXT_SNIPPET_LENGTH] for node in nodes]
+            metadatas = [{"source": node.metadata.get('source', '')} for node in nodes]
+            ids = [node.metadata.get('source', '') for node in nodes]
 
             logger.info(f"Adding documents to collection with {len(texts)} texts")
             collection.add(documents=texts, metadatas=metadatas, embeddings=embeddings, ids=ids)
