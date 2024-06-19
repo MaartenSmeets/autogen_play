@@ -87,6 +87,12 @@ def generate_response(contexts, questions, llm_model, task_type="answer"):
             logger.debug(f"Full response received")
             result_text = response.choices[0].message.content.strip()
             logger.debug(f"Generated {task_type} text...")
+            
+            if task_type == "generate_title":
+                result_text = result_text.split('\n')[-1].strip()
+                if result_text.startswith("Title: "):
+                    result_text = result_text[len("Title: "):].strip()
+            
             responses.append(result_text)
         except Exception as e:
             logger.error(f"Error generating {task_type}: {e}", exc_info=True)
@@ -185,7 +191,15 @@ def index_documents(directory):
         client = chromadb.PersistentClient(path=STORAGE_PATH)
         collection = client.get_or_create_collection(name="documents")
 
-        splitter = SemanticSplitterNodeParser(buffer_size=1, breakpoint_percentile_threshold=95, embed_model=ollama_emb)
+        # Best practices for using SemanticSplitterNodeParser
+        splitter = SemanticSplitterNodeParser(
+            buffer_size=3,  # Adjust buffer size to include more contextual information
+            overlap=1,  # Overlap to ensure context continuity
+            embed_model=ollama_emb,  # Using the embedding model initialized earlier
+            min_chunk_size=50,  # Minimum chunk size to avoid overly small chunks
+            max_chunk_size=500,  # Maximum chunk size to balance granularity and coherence
+            length_function=len,  # Use length of text to measure chunk size
+        )
         
         documents = []
         for root, _, files in os.walk(directory):
