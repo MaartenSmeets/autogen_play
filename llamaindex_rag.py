@@ -92,6 +92,8 @@ def generate_response(contexts, questions, llm_model, task_type="answer"):
                 result_text = result_text.split('\n')[-1].strip()
                 if result_text.startswith("Title: "):
                     result_text = result_text[len("Title: "):].strip()
+                # Remove surrounding quotes if present
+                result_text = result_text.strip('"\'')
             
             responses.append(result_text)
         except Exception as e:
