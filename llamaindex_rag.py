@@ -1,5 +1,5 @@
 import logging
-import openai
+from openai import OpenAI
 from llama_index.core.readers import SimpleDirectoryReader
 from llama_index.core.node_parser import SemanticSplitterNodeParser
 from llama_index.embeddings.ollama import OllamaEmbedding
@@ -7,17 +7,18 @@ from llama_index.core.prompts import ChatPromptTemplate
 import chromadb
 from bs4 import BeautifulSoup
 import math
+import uuid
 
 # Base URL for the local OpenAI-compliant API and Ollama
 BASE_URL = "http://localhost:11434"
-
+API_KEY = "Welcome01"
 # Configuration parameters
 STORAGE_PATH = "./vector_store"
 EMBEDDING_MODEL = "nomic-embed-text:latest"  # Specify your embedding model
 LLM_MODEL = "mixtral:8x22b-instruct-v0.1-q3_K_S"  # Updated model
 DOCUMENT_DIRECTORY = './crawled_pages'
 QUESTION = "An Eldritch Knight (PHB fighter subclass) can choose level 3 spells when level 13. Which spell should I choose as an Eldritch Knight elf focused on ranged combat?"
-UPDATE_VECTOR_STORE = True  # New parameter to make updating the vector store optional
+UPDATE_VECTOR_STORE = False  # New parameter to make updating the vector store optional
 
 # Logging configuration parameters
 LOGGING_LEVEL = logging.INFO
@@ -46,7 +47,7 @@ def get_embedding(texts, is_query=False):
     if is_query:
         logger.info(f"Embedding query texts: {snippet}...")
         return ollama_emb.get_query_embedding(texts)
-    
+
     logger.info(f"Embedding documents: {snippet}...")
     return ollama_emb.get_text_embedding_batch(texts, show_progress=True)
 
@@ -64,17 +65,20 @@ def generate_response(context, question, llm_model, task_type="answer"):
 
     prompt = prompt_template.format(context=context, question=question)
     try:
-        response = openai.completions.create(
+        client = OpenAI(base_url=(BASE_URL+"/v1/"), api_key=API_KEY)
+        response = client.chat.completions.create(
             model=llm_model,
-            prompt=prompt,
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
             max_tokens=TOKEN_LENGTH,
-            temperature=0.1,
-            api_base=BASE_URL  # Ensure the local API base URL is used
+            temperature=0.1
         )
         logger.debug(f"Response from OpenAI: {response}")
 
-        result_text = response.choices[0].text.strip()
-        logger.info(f"Generated {task_type} text: {result_text[:TEXT_SNIPPET_LENGTH]}...")
+        result_text = response.choices[0].message['content'].strip()
+        logger.info(f"Generated {task_type} text: {result_text[:TEXT_SNIPPET_LENGTH]}...")        
         return result_text
     except Exception as e:
         logger.error(f"Error generating {task_type}: {e}", exc_info=True)
@@ -101,7 +105,6 @@ def index_documents(directory):
         nodes = []
 
         total_documents = len(documents)
-        progress_interval = max(1, total_documents // 20)  # Calculate the interval for 5% progress
         last_logged_progress = 0
 
         # Process each document and update progress
@@ -124,7 +127,7 @@ def index_documents(directory):
             texts = [node.get_content() for node in nodes]
             embeddings = get_embedding(texts)
             metadatas = [{"source": node.metadata.get('source', '')} for node in nodes]
-            ids = [node.metadata.get('source', '') for node in nodes]
+            ids = [{uuid.uuid4()} for node in nodes]
 
             logger.info(f"Adding documents to collection with {len(texts)} texts")
             collection.add(documents=texts, metadatas=metadatas, embeddings=embeddings, ids=ids)
@@ -138,7 +141,7 @@ def query_vector_store(collection, query, top_k=5):
     logger.info(f"Querying vector store with query: {query[:TEXT_SNIPPET_LENGTH]}...")
     embedding = get_embedding(query, is_query=True)
     results = collection.query(query_embeddings=[embedding], n_results=top_k)
-    
+
     if top_k > 1:
         logger.info(f"Top {top_k} results:")
         for idx, doc in enumerate(results['documents'], start=1):
@@ -158,7 +161,7 @@ def main():
         logger.info("Skipping document indexing as UPDATE_VECTOR_STORE is set to False.")
         client = chromadb.PersistentClient(path=STORAGE_PATH)
         collection = client.get_collection(name="documents")
-    
+
     search_terms = generate_response("", QUESTION, LLM_MODEL, task_type="search_terms")
     logger.info(f"Determined search terms: {search_terms}")
 
@@ -170,7 +173,7 @@ def main():
         relevant_documents = []
         for term in search_terms_list:
             results = query_vector_store(collection, term, top_k=10)
-            
+
             if results and 'documents' in results:
                 for doc in results['documents']:
                     if validate_document_relevance(doc[0], QUESTION, LLM_MODEL):
@@ -188,3 +191,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
