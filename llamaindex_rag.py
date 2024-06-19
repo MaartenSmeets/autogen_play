@@ -1,6 +1,5 @@
 import logging
 from openai import OpenAI
-from llama_index.core.readers import SimpleDirectoryReader
 from llama_index.core.node_parser import SemanticSplitterNodeParser
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.core.schema import Document
@@ -13,7 +12,6 @@ import os
 BASE_URL = "http://localhost:11434"
 API_KEY = "Welcome01"
 STORAGE_PATH = "./vector_store"
-EMBEDDING_MODEL = "nomic-embed-text:latest"
 TITLE_GENERATION_MODEL = "mistral:instruct"
 EMBEDDING_MODEL = "avr/sfr-embedding-mistral:latest"
 LLM_MODEL = "mixtral:8x22b-instruct-v0.1-q3_K_S"
@@ -25,6 +23,7 @@ TEXT_SNIPPET_LENGTH = 200
 LOG_FILE = 'script_log.log'
 TOKEN_LENGTH = 16384
 PROCESSING_BATCH_SIZE = 200
+USE_LLM_FOR_TITLE = True
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -99,28 +98,34 @@ def read_html_file(filepath):
     try:
         with open(filepath, 'r', encoding='utf-8') as file:
             content = file.read()
-        soup_text = BeautifulSoup(content, 'html.parser').get_text()
-        logger.debug(f"Read HTML file: {filepath}")
-        return soup_text
+        soup = BeautifulSoup(content, 'html.parser')
+        soup_text = soup.get_text()
+        title = soup.title.string if soup.title else "No title"
+        logger.debug(f"Read HTML file: {filepath} with title: {title}")
+        return soup_text, title
     except Exception as e:
         logger.error(f"Error reading HTML file {filepath}: {e}", exc_info=True)
         raise
 
 def preprocess_text(text):
     lines = text.splitlines()
-    # Remove leading empty lines
+    seen_lines = set()
     filtered_lines = []
-    found_non_empty = False
     for line in lines:
-        if not found_non_empty and line.strip() == '':
+        stripped_line = line.strip()
+        if stripped_line == "":
             continue
-        found_non_empty = True
+        if stripped_line in seen_lines:
+            continue
+        seen_lines.add(stripped_line)
         filtered_lines.append(line)
     return "\n".join(filtered_lines).strip()
 
 def index_document_batch(documents, splitter, collection):
     sources = [doc.metadata.get('source', None) for doc in documents]
     contexts = []
+    html_titles = []
+    llm_titles = []
     
     for document, source in zip(documents, sources):
         if not source:
@@ -131,33 +136,39 @@ def index_document_batch(documents, splitter, collection):
         file_path = os.path.join(DOCUMENT_DIRECTORY, source)
         if source.endswith('.html'):
             logger.debug(f"File identified as HTML: {source}")
-            document_content = read_html_file(file_path)
+            document_content, document_title = read_html_file(file_path)
             document_content = preprocess_text(document_content)
             document.text = document_content
+            html_titles.append(document_title)
         else:
             document.text = preprocess_text(document.text)
             logger.debug(f"File not identified as HTML: {source}")
+            html_titles.append("")
 
         contexts.append(document.text)
     
-    # Generate titles in batch
-    titles = generate_response(contexts, [""] * len(contexts), TITLE_GENERATION_MODEL, task_type="generate_title")
+    # Generate titles if needed
+    if USE_LLM_FOR_TITLE:
+        generated_llm_titles = generate_response(contexts, [""] * len(contexts), TITLE_GENERATION_MODEL, task_type="generate_title")
+        llm_titles = generated_llm_titles
     
-    for document, title in zip(documents, titles):
-        document.metadata['title'] = title
+    for document, html_title, llm_title in zip(documents, html_titles, llm_titles):
+        document.metadata['html_title'] = html_title
+        document.metadata['llm_title'] = llm_title
 
     # Split documents into chunks and get embeddings
     all_chunks = []
     for document in documents:
         chunks = splitter.get_nodes_from_documents([document])
         for chunk in chunks:
-            chunk.metadata['title'] = document.metadata['title']
+            chunk.metadata['html_title'] = document.metadata['html_title']
+            chunk.metadata['llm_title'] = document.metadata['llm_title']
             chunk.metadata['source'] = document.metadata['source']
         all_chunks.extend(chunks)
 
     texts = [chunk.get_content() for chunk in all_chunks]
     embeddings = get_embedding(texts)
-    metadatas = [{"source": chunk.metadata.get('source', ''), "title": chunk.metadata.get('title', '')} for chunk in all_chunks]
+    metadatas = [{"source": chunk.metadata.get('source', ''), "html_title": chunk.metadata.get('html_title', ''), "llm_title": chunk.metadata.get('llm_title', '')} for chunk in all_chunks]
     
     # Improved ID generation using Composite ID
     ids = [f"{chunk.metadata['source']}-{i}-{uuid.uuid4()}" for i, chunk in enumerate(all_chunks)]
@@ -209,8 +220,9 @@ def query_vector_store(collection, query, top_k=5):
         for idx, (docs, metas) in enumerate(zip(results['documents'], results['metadatas']), start=1):
             for doc_idx, (doc, meta) in enumerate(zip(docs, metas)):
                 source = meta.get('source', 'Unknown source')
-                title = meta.get('title', 'No title')
-                logger.info(f"Result {idx}, Document {doc_idx} from {source}, Title: {title}")
+                html_title = meta.get('html_title', 'No HTML title')
+                llm_title = meta.get('llm_title', 'No LLM title')
+                logger.info(f"Result {idx}, Document {doc_idx} from {source}, HTML Title: {html_title}, LLM Title: {llm_title}")
 
     return results
 
