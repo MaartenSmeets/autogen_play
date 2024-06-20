@@ -60,7 +60,7 @@ def get_embedding(texts, is_query=False):
 
 def generate_response(contexts, questions, llm_model, task_type="answer"):
     prompts = {
-        "search_terms": "Provide only a comma-separated list of main keywords for a semantic search based on the following question: {question}",
+        "search_terms": "Provide only a comma-separated list of main keywords for a semantic search based on the following question: {question}. Group related keywords together in the same comma-separated section (e.g., apples pears, pies cakes, houses flats)",
         "validate_document": "Context: {context}\n\nQuestion: {question}\n\nWill this document be of added value in answering this question? Answer only with 'yes' or 'no'.",
         "answer": "Context: {context}\n\nQuestion: {question}\n\nAnswer:",
         "generate_title": "Context: {context}\n\nGenerate only a concise title for the above context."
@@ -187,11 +187,13 @@ def index_document_batch(documents, splitter, collection):
         logger.info(f"Processed and indexed document: {source}")
 
 def index_documents(directory):
-    if UPDATE_VECTOR_STORE:
-        logger.info(f"Indexing documents in directory: {directory}")
-
-        client = chromadb.PersistentClient(path=STORAGE_PATH)
-        collection = client.get_or_create_collection(name="documents")
+    client = chromadb.PersistentClient(path=STORAGE_PATH)
+    try:
+        collection = client.get_collection(name="documents")
+        logger.info("Collection 'documents' already exists. Skipping indexing.")
+    except ValueError:
+        logger.info(f"Collection 'documents' does not exist. Indexing documents in directory: {directory}")
+        collection = client.create_collection(name="documents")
 
         # Best practices for using SemanticSplitterNodeParser
         splitter = SemanticSplitterNodeParser(
@@ -219,11 +221,7 @@ def index_documents(directory):
             batch = documents[i:i+batch_size]
             index_document_batch(batch, splitter, collection)
 
-        return collection
-    else:
-        logger.info("Skipping document indexing as UPDATE_VECTOR_STORE is set to False.")
-        client = chromadb.PersistentClient(path=STORAGE_PATH)
-        return client.get_collection(name="documents")
+    return collection
 
 def query_vector_store(collection, query, top_k=5):
     logger.info(f"Querying vector store with query: {query[:TEXT_SNIPPET_LENGTH]}...")
@@ -257,17 +255,21 @@ def main():
     logger.info(f"Determined search terms: {search_terms[0]}")
 
     if collection:
-        results = query_vector_store(collection, search_terms[0], top_k=10)
-        relevant_documents = []
-        
-        if results and 'documents' in results:
-            for docs, metas in zip(results['documents'], results['metadatas']):
-                for doc, meta in zip(docs, metas):
-                    if 'content' in meta and validate_document_relevance(doc, QUESTION, LLM_MODEL):
-                        relevant_documents.append(doc)
+        all_relevant_documents = []
+        search_term_groups = search_terms[0].split(',')
+        for term_group in search_term_groups:
+            term_group = term_group.strip()
+            # Create a query using only the LLM titles
+            llm_titles_query = f"{term_group} llm_title"
+            results = query_vector_store(collection, llm_titles_query, top_k=10)
+            if results and 'documents' in results:
+                for docs, metas in zip(results['documents'], results['metadatas']):
+                    for doc, meta in zip(docs, metas):
+                        if 'content' in meta and validate_document_relevance(doc, QUESTION, LLM_MODEL):
+                            all_relevant_documents.append(doc)
 
-        if relevant_documents:
-            context = " ".join([doc for doc in relevant_documents])
+        if all_relevant_documents:
+            context = " ".join([doc for doc in all_relevant_documents])
             logger.info(f"Generated context...")
             answer = generate_response([context], [QUESTION], LLM_MODEL, task_type="answer")
             logger.info(f"Question: {QUESTION}\nAnswer: {answer[0]}")
