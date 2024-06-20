@@ -1,0 +1,64 @@
+2024-06-20 08:47:35 - __main__ - INFO - Collection 'documents' does not exist. Indexing documents in directory: ./crawled_pages
+2024-06-20 08:57:06 - __main__ - INFO - Processed and indexed document...
+2024-06-20 10:44:23 - __main__ - INFO - Determined search terms: Eldritch Knight, PHB fighter subclass, level 13 spells, ranged combat, elf character
+2024-06-20 10:44:23 - __main__ - INFO - Querying vector store with query: Eldritch Knight llm_title...
+2024-06-20 10:44:28 - __main__ - INFO - Top 10 results:
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 0 from page_1947.html, HTML Title: All Spells, LLM Title: List of D&D 5th Edition Spells
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 1 from page_1945.html, HTML Title: Artifact Properties, LLM Title: Artifact Properties in DND 5E
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 2 from page_1305.html, HTML Title: Page Tags, LLM Title: List of Items Tagged with 'ggr' (Guild Gizmos and Relics)
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 3 from page_1207.html, HTML Title: Page Tags, LLM Title: Pages Tagged with 'sdw': List of Related D&D Items and Abilities
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 4 from page_1211.html, HTML Title: Page Tags, LLM Title: List of SCC Tagged Pages in Strixhaven Setting
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 5 from page_1441.html, HTML Title: Sidekicks, LLM Title: D&D Sidekicks: Rules and Guidelines for Adding NPC Companions to Adventuring Parties
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 6 from page_1361.html, HTML Title: Page Tags, LLM Title: List of Items Tagged with 'bomt' (Best of My Time) in D&D 5e
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 7 from page_1909.html, HTML Title: Site Members, LLM Title: List of Users Joined from 26 Jul 2020 to 23 Jan 2021 on this Platform
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 8 from page_1914.html, HTML Title: Recent Changes, LLM Title: Recent Changes in D&D 5e: Warlock, Feat, Spell, Wondrous-Items, and Background Updates
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 9 from page_1201.html, HTML Title: Page Tags, LLM Title: List of Staff Items in D&D 5e
+2024-06-20 10:44:28 - __main__ - INFO - Querying vector store with query: PHB fighter subclass llm_title...
+2024-06-20 10:44:28 - __main__ - INFO - Top 10 results:
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 0 from page_1947.html, HTML Title: All Spells, LLM Title: List of D&D 5th Edition Spells
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 1 from page_1945.html, HTML Title: Artifact Properties, LLM Title: Artifact Properties in DND 5E
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 2 from page_1948.html, HTML Title: All Lineages, LLM Title: Comprehensive List of D&D Lineages: Aarakocra to Zendikar Elves
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 3 from page_19.html, HTML Title: Page Tags, LLM Title: List of Cantrip Spells in D&D 5e
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 4 from page_1207.html, HTML Title: Page Tags, LLM Title: Pages Tagged with 'sdw': List of Related D&D Items and Abilities
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 5 from page_1441.html, HTML Title: Sidekicks, LLM Title: D&D Sidekicks: Rules and Guidelines for Adding NPC Companions to Adventuring Parties
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 6 from page_1211.html, HTML Title: Page Tags, LLM Title: List of SCC Tagged Pages in Strixhaven Setting
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 7 from page_1361.html, HTML Title: Page Tags, LLM Title: List of Items Tagged with 'bomt' (Best of My Time) in D&D 5e
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 8 from page_41.html, HTML Title: Page Tags, LLM Title: List of D&D 5e Items Tagged with Various Categories (abjuration, conjuration, divination, enchantment, evocation, illusion, necromancy, transmutation, etc.)
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 9 from page_28.html, HTML Title: Page Tags, LLM Title: List of First-Level Spells in D&D 5e
+2024-06-20 10:44:28 - __main__ - INFO - Querying vector store with query: level 13 spells llm_title...
+2024-06-20 10:44:28 - __main__ - INFO - Top 10 results:
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 0 from page_1947.html, HTML Title: All Spells, LLM Title: List of D&D 5th Edition Spells
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 1 from page_1945.html, HTML Title: Artifact Properties, LLM Title: Artifact Properties in DND 5E
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 2 from page_19.html, HTML Title: Page Tags, LLM Title: List of Cantrip Spells in D&D 5e
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 3 from page_1211.html, HTML Title: Page Tags, LLM Title: List of SCC Tagged Pages in Strixhaven Setting
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 4 from page_1948.html, HTML Title: All Lineages, LLM Title: Comprehensive List of D&D Lineages: Aarakocra to Zendikar Elves
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 5 from page_1925.html, HTML Title: Dunamancy Spells, LLM Title: Introduction to Dunamancy Spells in D&D: Usage, Origin, and Integration
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 6 from page_1946.html, HTML Title: HTML Layout, LLM Title: Standard Wikidot HTML Layout (Bootstrap and CSS Theme Compatible)
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 7 from page_41.html, HTML Title: Page Tags, LLM Title: List of D&D 5e Items Tagged with Various Categories (abjuration, conjuration, divination, enchantment, evocation, illusion, necromancy, transmutation, etc.)
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 8 from page_1914.html, HTML Title: Recent Changes, LLM Title: Recent Changes in D&D 5e: Warlock, Feat, Spell, Wondrous-Items, and Background Updates
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 9 from page_1909.html, HTML Title: Site Members, LLM Title: List of Users Joined from 26 Jul 2020 to 23 Jan 2021 on this Platform
+2024-06-20 10:44:28 - __main__ - INFO - Querying vector store with query: ranged combat llm_title...
+2024-06-20 10:44:28 - __main__ - INFO - Top 10 results:
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 0 from page_1947.html, HTML Title: All Spells, LLM Title: List of D&D 5th Edition Spells
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 1 from page_1945.html, HTML Title: Artifact Properties, LLM Title: Artifact Properties in DND 5E
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 2 from page_1948.html, HTML Title: All Lineages, LLM Title: Comprehensive List of D&D Lineages: Aarakocra to Zendikar Elves
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 3 from page_1305.html, HTML Title: Page Tags, LLM Title: List of Items Tagged with 'ggr' (Guild Gizmos and Relics)
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 4 from page_1211.html, HTML Title: Page Tags, LLM Title: List of SCC Tagged Pages in Strixhaven Setting
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 5 from page_1946.html, HTML Title: HTML Layout, LLM Title: Standard Wikidot HTML Layout (Bootstrap and CSS Theme Compatible)
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 6 from page_19.html, HTML Title: Page Tags, LLM Title: List of Cantrip Spells in D&D 5e
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 7 from page_1949.html, HTML Title: All Items, LLM Title: Fantasy Artifact Inventory
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 8 from page_1361.html, HTML Title: Page Tags, LLM Title: List of Items Tagged with 'bomt' (Best of My Time) in D&D 5e
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 9 from page_41.html, HTML Title: Page Tags, LLM Title: List of D&D 5e Items Tagged with Various Categories (abjuration, conjuration, divination, enchantment, evocation, illusion, necromancy, transmutation, etc.)
+2024-06-20 10:44:28 - __main__ - INFO - Querying vector store with query: elf character llm_title...
+2024-06-20 10:44:28 - __main__ - INFO - Top 10 results:
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 0 from page_1948.html, HTML Title: All Lineages, LLM Title: Comprehensive List of D&D Lineages: Aarakocra to Zendikar Elves
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 1 from page_1211.html, HTML Title: Page Tags, LLM Title: List of SCC Tagged Pages in Strixhaven Setting
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 2 from page_1207.html, HTML Title: Page Tags, LLM Title: Pages Tagged with 'sdw': List of Related D&D Items and Abilities
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 3 from page_19.html, HTML Title: Page Tags, LLM Title: List of Cantrip Spells in D&D 5e
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 4 from page_1914.html, HTML Title: Recent Changes, LLM Title: Recent Changes in D&D 5e: Warlock, Feat, Spell, Wondrous-Items, and Background Updates
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 5 from page_1305.html, HTML Title: Page Tags, LLM Title: List of Items Tagged with 'ggr' (Guild Gizmos and Relics)
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 6 from page_1999.html, HTML Title: Genasi, LLM Title: Types of Genasi (Air, Earth, Fire, Water)
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 7 from page_1909.html, HTML Title: Site Members, LLM Title: List of Users Joined from 26 Jul 2020 to 23 Jan 2021 on this Platform
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 8 from page_1201.html, HTML Title: Page Tags, LLM Title: List of Staff Items in D&D 5e
+2024-06-20 10:44:28 - __main__ - INFO - Result 1, Document 9 from page_1935.html, HTML Title: Search, LLM Title: D&D 5e Wiki Search Guide: Basic & Advanced Filters
+2024-06-20 10:44:28 - __main__ - INFO - No relevant documents found.
