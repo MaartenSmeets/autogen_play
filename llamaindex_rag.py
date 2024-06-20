@@ -9,27 +9,27 @@ import uuid
 import os
 
 # Configuration parameters
-BASE_URL = "http://localhost:11434"
-API_KEY = "Welcome01"
-STORAGE_PATH = "./vector_store"
-TITLE_GENERATION_MODEL = "mistral:instruct"
-EMBEDDING_MODEL = "avr/sfr-embedding-mistral:latest"
-LLM_MODEL = "mixtral:8x22b-instruct-v0.1-q3_K_S"
-DOCUMENT_DIRECTORY = './crawled_pages'
-QUESTION = "An Eldritch Knight (PHB fighter subclass) can choose level 3 spells when level 13. Which spell should I choose as an Eldritch Knight elf focused on ranged combat?"
-UPDATE_VECTOR_STORE = True
-LOGGING_LEVEL = logging.INFO
-TEXT_SNIPPET_LENGTH = 200
-LOG_FILE = 'script_log.log'
-TOKEN_LENGTH = 16384
-PROCESSING_BATCH_SIZE = 200
-USE_LLM_FOR_TITLE = True
+BASE_URL = "http://localhost:11434"  # Base URL for the API
+API_KEY = "Welcome01"  # API key for authentication
+STORAGE_PATH = "./vector_store"  # Path to store vector data
+TITLE_GENERATION_MODEL = "mistral:instruct"  # Model for generating titles
+EMBEDDING_MODEL = "avr/sfr-embedding-mistral:latest"  # Model for generating embeddings
+LLM_MODEL = "mixtral:8x22b-instruct-v0.1-q3_K_S"  # Large language model for generating responses
+DOCUMENT_DIRECTORY = './crawled_pages'  # Directory containing documents to be indexed
+QUESTION = "An Eldritch Knight (PHB fighter subclass) can choose level 3 spells when level 13. Which spell should I choose as an Eldritch Knight elf focused on ranged combat?"  # Example question for querying
+UPDATE_VECTOR_STORE = True  # Flag to indicate if vector store should be updated
+LOGGING_LEVEL = logging.INFO  # Logging level
+TEXT_SNIPPET_LENGTH = 200  # Length of text snippets for logging
+LOG_FILE = 'script_log.log'  # Log file name
+TOKEN_LENGTH = 16384  # Maximum token length for LLM responses
+PROCESSING_BATCH_SIZE = 200  # Batch size for processing documents
+USE_LLM_FOR_TITLE = True  # Flag to indicate if LLM should be used for generating titles
 
 # Configure logging
 logger = logging.getLogger(__name__)
 logger.setLevel(LOGGING_LEVEL)
 
-# Create handlers
+# Create handlers for logging to file and console
 file_handler = logging.FileHandler(LOG_FILE, mode='w')
 stream_handler = logging.StreamHandler()
 
@@ -54,11 +54,33 @@ logging.getLogger("llama_index.node_parser").setLevel(logging.WARNING)
 ollama_emb = OllamaEmbedding(model_name=EMBEDDING_MODEL, base_url=BASE_URL)
 
 def get_embedding(texts, is_query=False):
+    """
+    Generate embeddings for the provided texts.
+    
+    Parameters:
+    texts (list or str): Text(s) to generate embeddings for.
+    is_query (bool): Flag indicating if the texts are for a query.
+    
+    Returns:
+    list: Embeddings for the texts.
+    """
     snippet = str(len(texts)) if isinstance(texts, list) else texts[:TEXT_SNIPPET_LENGTH]
     logger.debug(f"Embedding {'query' if is_query else 'documents'}...")
     return ollama_emb.get_query_embedding(texts) if is_query else ollama_emb.get_text_embedding_batch(texts, show_progress=True)
 
 def generate_response(contexts, questions, llm_model, task_type="answer"):
+    """
+    Generate responses using a language model.
+    
+    Parameters:
+    contexts (list): List of contexts for the questions.
+    questions (list): List of questions to generate responses for.
+    llm_model (str): Language model to use.
+    task_type (str): Type of task (e.g., "answer", "generate_title").
+    
+    Returns:
+    list: Generated responses.
+    """
     prompts = {
         "search_terms": "Provide only a comma-separated list of main keywords for a semantic search based on the following question: {question}. Group related keywords together in the same comma-separated section (e.g., apples pears, pies cakes, houses flats)",
         "validate_document": "Context: {context}\n\nQuestion: {question}\n\nWill this document be of added value in answering this question? Answer only with 'yes' or 'no'.",
@@ -103,6 +125,15 @@ def generate_response(contexts, questions, llm_model, task_type="answer"):
     return responses
 
 def read_html_file(filepath):
+    """
+    Read and parse an HTML file.
+    
+    Parameters:
+    filepath (str): Path to the HTML file.
+    
+    Returns:
+    tuple: Text content and title of the HTML file.
+    """
     try:
         with open(filepath, 'r', encoding='utf-8') as file:
             content = file.read()
@@ -116,6 +147,15 @@ def read_html_file(filepath):
         raise
 
 def preprocess_text(text):
+    """
+    Preprocess text by removing duplicate lines and trimming whitespace.
+    
+    Parameters:
+    text (str): Text to preprocess.
+    
+    Returns:
+    str: Preprocessed text.
+    """
     lines = text.splitlines()
     seen_lines = set()
     filtered_lines = []
@@ -130,6 +170,14 @@ def preprocess_text(text):
     return "\n".join(filtered_lines).strip()
 
 def index_document_batch(documents, splitter, collection):
+    """
+    Index a batch of documents.
+    
+    Parameters:
+    documents (list): List of Document objects to index.
+    splitter (SemanticSplitterNodeParser): Splitter for breaking documents into chunks.
+    collection (chromadb.Collection): Collection to add documents to.
+    """
     sources = [doc.metadata.get('source', None) for doc in documents]
     contexts = []
     html_titles = []
@@ -187,6 +235,15 @@ def index_document_batch(documents, splitter, collection):
         logger.info(f"Processed and indexed document: {source}")
 
 def index_documents(directory):
+    """
+    Index all documents in the specified directory.
+    
+    Parameters:
+    directory (str): Directory containing the documents.
+    
+    Returns:
+    chromadb.Collection: Collection of indexed documents.
+    """
     client = chromadb.PersistentClient(path=STORAGE_PATH)
     try:
         collection = client.get_collection(name="documents")
@@ -224,6 +281,17 @@ def index_documents(directory):
     return collection
 
 def query_vector_store(collection, query, top_k=5):
+    """
+    Query the vector store for relevant documents.
+    
+    Parameters:
+    collection (chromadb.Collection): Collection to query.
+    query (str): Query text.
+    top_k (int): Number of top results to retrieve.
+    
+    Returns:
+    dict: Query results containing documents and metadata.
+    """
     logger.info(f"Querying vector store with query: {query[:TEXT_SNIPPET_LENGTH]}...")
     embedding = get_embedding(query, is_query=True)
     results = collection.query(query_embeddings=[embedding], n_results=top_k, include=["documents", "metadatas"])
@@ -241,10 +309,24 @@ def query_vector_store(collection, query, top_k=5):
     return results
 
 def validate_document_relevance(document, question, llm_model):
+    """
+    Validate if a document is relevant to the given question.
+    
+    Parameters:
+    document (str): Document text.
+    question (str): Question to validate against.
+    llm_model (str): Language model to use for validation.
+    
+    Returns:
+    bool: True if the document is relevant, False otherwise.
+    """
     response = generate_response([document], [question], llm_model, task_type="validate_document")
     return response[0].strip().lower() == 'yes'
 
 def main():
+    """
+    Main function to index documents and query the vector store.
+    """
     collection = index_documents(DOCUMENT_DIRECTORY)
 
     if collection is None:
