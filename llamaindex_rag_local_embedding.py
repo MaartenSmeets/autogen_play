@@ -71,7 +71,8 @@ def get_text_embeddings(texts):
 def generate_response(contexts, questions, llm_model, task_type="answer"):
     prompts = {
         "answer": "Context: {context}\n\nQuestion: {question}\n\nAnswer:",
-        "generate_title": "Context: {context}\n\nGenerate only a concise title for the above context."
+        "generate_title": "Context: {context}\n\nGenerate only a concise title for the above context.",
+        "validate_document": "Context: {context}\n\nQuestion: {question}\n\nIs this document relevant and useful in answering the question? Answer 'yes' or 'no' with a brief justification.",
     }
     prompt_template = prompts.get(task_type, prompts["answer"])
     
