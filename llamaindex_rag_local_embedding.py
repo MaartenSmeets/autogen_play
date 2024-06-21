@@ -70,8 +70,6 @@ def get_text_embeddings(texts):
 
 def generate_response(contexts, questions, llm_model, task_type="answer"):
     prompts = {
-        "search_terms": "Provide only a comma-separated list of main keywords for a semantic search based on the following question: {question}. Group related keywords together in the same comma-separated section (e.g., apples pears, pies cakes, houses flats). Mind that general keywords will not provide specific results and should be avoided; be specific and concise.",
-        "validate_document": "Context: {context}\n\nQuestion: {question}\n\nIs this document relevant and useful in answering the question? Answer 'yes' or 'no' with a brief justification.",
         "answer": "Context: {context}\n\nQuestion: {question}\n\nAnswer:",
         "generate_title": "Context: {context}\n\nGenerate only a concise title for the above context."
     }
@@ -249,25 +247,21 @@ def main():
         logger.error("Failed to create or retrieve the collection. Exiting.")
         return
 
-    search_terms = generate_response([""], [QUESTION], LLM_MODEL, task_type="search_terms")
-    logger.info(f"Determined search terms: {search_terms[0]}")
+    logger.info(f"Using direct query for vector store search: {QUESTION}")
 
     if collection:
         all_relevant_documents = []
         all_irrelevant_documents = []
-        search_term_groups = search_terms[0].split(',')
-        for term_group in search_term_groups:
-            term_group = term_group.strip()
-            results = query_vector_store(collection, term_group, top_k=10)
-            if results and 'documents' in results and 'metadatas' in results:
-                for docs, metas in zip(results['documents'], results['metadatas']):
-                    for doc, meta in zip(docs, metas):
-                        if validate_document_relevance(doc, QUESTION, LLM_MODEL):
-                            logger.info(f"Found relevant document with HTML title: '{meta.get('html_title', 'No title')}' and LLM title: '{meta.get('llm_title', 'No title')}'")
-                            all_relevant_documents.append((doc, meta))
-                        else:
-                            logger.info(f"Found irrelevant document with HTML title: '{meta.get('html_title', 'No title')}' and LLM title: '{meta.get('llm_title', 'No title')}'")
-                            all_irrelevant_documents.append((doc, meta))
+        results = query_vector_store(collection, QUESTION, top_k=10)
+        if results and 'documents' in results and 'metadatas' in results:
+            for docs, metas in zip(results['documents'], results['metadatas']):
+                for doc, meta in zip(docs, metas):
+                    if validate_document_relevance(doc, QUESTION, LLM_MODEL):
+                        logger.info(f"Found relevant document with HTML title: '{meta.get('html_title', 'No title')}' and LLM title: '{meta.get('llm_title', 'No title')}'")
+                        all_relevant_documents.append((doc, meta))
+                    else:
+                        logger.info(f"Found irrelevant document with HTML title: '{meta.get('html_title', 'No title')}' and LLM title: '{meta.get('llm_title', 'No title')}'")
+                        all_irrelevant_documents.append((doc, meta))
 
         if all_relevant_documents:
             context = " ".join([doc for doc, _ in all_relevant_documents])
