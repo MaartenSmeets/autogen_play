@@ -239,7 +239,7 @@ def validate_document_relevance(document, question, llm_model):
     response_text = response[0].strip().lower()
     justification = response_text.split(':')[1].strip() if ':' in response_text else ''
     logger.info(f"Validating document relevance: {response_text}")
-    return response_text.startswith('yes') and 'yes' in justification
+    return response_text.startswith('yes')
 
 def main():
     collection = index_documents(DOCUMENT_DIRECTORY)
