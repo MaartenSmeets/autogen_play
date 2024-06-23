@@ -4,7 +4,6 @@ from scrapy.utils.project import get_project_settings
 import os
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup, Comment
-import html2text
 
 class LinkSpider(scrapy.Spider):
     name = "link_spider"
@@ -30,10 +29,10 @@ class LinkSpider(scrapy.Spider):
         if page_content:
             if self.contains_excluded_source(page_content):
                 self.excluded_counter += 1
-                filename = f'excluded_pages/page_{self.excluded_counter}.md'
+                filename = f'excluded_pages/page_{self.excluded_counter}.html'
             else:
                 self.counter += 1
-                filename = f'crawled_pages/page_{self.counter}.md'
+                filename = f'crawled_pages/page_{self.counter}.html'
                 self.visited_urls[response.url] = filename
             
             # Add title and URL to the combined content
@@ -50,12 +49,9 @@ class LinkSpider(scrapy.Spider):
                 </body>
             </html>
             """
-
-            # Convert HTML to Markdown
-            markdown_content = html2text.html2text(final_content)
             
             with open(filename, 'w', encoding='utf-8') as f:
-                f.write(markdown_content)
+                f.write(final_content)
             self.log(f'Saved file {filename}')
         
         # Extract all links from the page
